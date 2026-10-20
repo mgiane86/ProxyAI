@@ -7,6 +7,10 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>OneProviderProxy</RootNamespace>
+    <!-- Da qui parte il versioning: aggiornare qui e nel tag Git (vMAJOR.MINOR.PATCH). -->
+    <Version>1.0.0</Version>
+    <Product>ProxyAI</Product>
+    <Copyright>Copyright (c) 2026 mgiane86</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

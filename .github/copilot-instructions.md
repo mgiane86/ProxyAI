@@ -65,6 +65,12 @@ App WinForms .NET 10 (`net10.0-windows`) che gira come icona di sistema (tray). 
 
 `ModelCatalog.Cached` vuota all'avvio
 
+## Versioning
+
+La versione vive in due posti che devono restare allineati: `<Version>` in `ProxyAI.csproj` e il tag Git `vMAJOR.MINOR.PATCH`. Il versioning parte da **v1.0.0**. `AssemblyVersion`/`FileVersion`/`ProductVersion` sono derivati automaticamente da `<Version>`: non impostarli a mano. Per una nuova release: incrementa `<Version>`, committa, poi `git tag -a vX.Y.Z -m "..."` e push del tag.
+
 ## Build
 
 `dotnet build` dalla root (`ProxyAI.slnx`). Non esistono test: la verifica è la compilazione più una prova manuale su `http://localhost:{Port}/v1/models`.
+
+Pacchetto per l'esterno: `dotnet publish ProxyAI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish`, poi `Compress-Archive` del solo `ProxyAI.exe`. `publish/` è in `.gitignore`: il binario va allegato a mano alla GitHub Release.
