@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -14,6 +16,11 @@ public class SettingsForm : Form
 {
     private readonly AppSettings _settings;
     private readonly Action _onSettingsSaved;
+
+    // Copia di lavoro degli agenti: le modifiche diventano definitive solo con "Salva e Riavvia"
+    private readonly List<AgentProfile> _agents;
+    private int _currentIndex = -1;
+    private bool _loadingAgent; // true mentre riempiamo i controlli da codice: evita che gli eventi riscrivano i dati
 
     // Connessione
     private readonly GroupBox _grpConn = new();
@@ -33,41 +40,59 @@ public class SettingsForm : Form
     private readonly Label _lblBalanceInfo = new() { AutoSize = true, Font = new Font("Segoe UI", 9f, FontStyle.Bold) };
     private readonly Label _lblExpiryInfo = new() { AutoSize = true, Font = new Font("Segoe UI", 8.5f, FontStyle.Regular), ForeColor = Color.DimGray };
 
-    // Modelli & Preset
+    // Agenti & Modelli
     private readonly GroupBox _grpModels = new();
+    private readonly Label _lblAgent = new() { AutoSize = true };
+    private readonly ComboBox _cmbAgents = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
+    private readonly Button _btnNewAgent = new() { Size = new Size(75, 26) };
+    private readonly Button _btnDeleteAgent = new() { Size = new Size(95, 26) };
+    private readonly Label _lblAgentName = new() { AutoSize = true };
+    private readonly TextBox _txtAgentName = new() { Width = 455 };
     private readonly Label _lblSelectModel = new();
-    private readonly ComboBox _cmbModels = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
+    private readonly TextBox _txtSelectedModel = new() { Width = 230, ReadOnly = true, BackColor = Color.White };
+    private readonly Button _btnSelectModel = new() { Size = new Size(95, 26) };
     private readonly Button _btnCopyModelId = new() { Size = new Size(75, 26) };
     private readonly Button _btnCopyPreset = new() { Size = new Size(95, 26) };
 
     private readonly Label _lblPresetContext = new() { AutoSize = true, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), ForeColor = Color.FromArgb(0, 102, 204) };
-    private readonly Label _lblPresetOutput = new() { AutoSize = true, Font = new Font("Segoe UI", 8.5f, FontStyle.Regular), ForeColor = Color.FromArgb(40, 40, 40) };
-    private readonly Label _lblPresetFeatures = new() { AutoSize = true, Font = new Font("Segoe UI", 8.5f, FontStyle.Italic), ForeColor = Color.DarkSlateGray };
+
+    // Limiti token e funzionalità dell'agente
+    private readonly Label _lblMaxInput = new() { AutoSize = false, Width = 118, Height = 16 };
+    private readonly NumericUpDown _numMaxInput = new() { Width = 110, Minimum = 0, Maximum = 2_000_000, Increment = 1000 };
+    private readonly Label _lblMaxOutput = new() { AutoSize = false, Width = 118, Height = 16 };
+    private readonly NumericUpDown _numMaxOutput = new() { Width = 110, Minimum = 0, Maximum = 2_000_000, Increment = 1000 };
+    private readonly CheckBox _chkTools = new() { AutoSize = true };
+    private readonly CheckBox _chkVision = new() { AutoSize = true };
+    private readonly CheckBox _chkCache = new() { AutoSize = true };
+
+    // Markdown dell'agente
+    private readonly Label _lblMarkdown = new() { AutoSize = true };
+    private readonly Button _btnLoadMd = new() { Size = new Size(85, 26) };
+    private readonly Button _btnClearMd = new() { Size = new Size(85, 26) };
+    private readonly TextBox _txtMarkdown = new()
+    {
+        Multiline = true,
+        AcceptsReturn = true,
+        ScrollBars = ScrollBars.Vertical,
+        Font = new Font("Consolas", 9f),
+        Width = 455,
+        Height = 90,
+        MaxLength = int.MaxValue
+    };
 
     // Guida & Azioni
     private readonly GroupBox _grpGuide = new();
-    private readonly RichTextBox _txtGuide = new() { ReadOnly = true, Height = 95, Width = 465, BackColor = Color.FromArgb(245, 245, 245), BorderStyle = BorderStyle.FixedSingle };
+    private readonly RichTextBox _txtGuide = new() { ReadOnly = true, Height = 110, Width = 465, BackColor = Color.FromArgb(245, 245, 245), BorderStyle = BorderStyle.FixedSingle };
     private readonly Button _btnSave = new() { Size = new Size(140, 32) };
 
-    private readonly List<ModelPreset> _modelPresets = new()
-    {
-        new("Claude Fable 5.1 (Architecture / Design)", "claude-fable-5-1", 100000, 8192, true, true),
-        new("Claude Opus 5.5 (Coding / Refactoring)", "claude-opus-5-5", 128000, 8192, true, true),
-        new("Claude Sonnet 5.5 (Balanced)", "claude-sonnet-5-5", 128000, 8192, true, true),
-        new("DeepSeek V4 Pro (Questions / Syntax)", "deepseek-v4-pro", 64000, 4096, true, false),
-        new("DeepSeek V4.1 Flash (Fast / Light)", "deepseek-v4.1-flash", 64000, 4096, true, true),
-        new("GPT-6.1 Sol (General Purpose)", "gpt-6.1-sol", 128000, 8192, true, true),
-        new("GPT-6 Luna (Ultra-Fast)", "gpt-6-luna", 64000, 4096, true, true),
-        new("Gemini 4 Argon (Multimodal)", "gemini-4-argon", 128000, 8192, true, true),
-        new("Gemini 3.1 Pro High", "gemini-3.1-pro-high", 128000, 8192, true, true),
-        new("GLM 5.3", "glm-5.3", 96000, 4096, true, false),
-        new("Grok 4.7", "grok-4.7", 100000, 4096, true, true)
-    };
+    private AgentProfile? CurrentAgent =>
+        _currentIndex >= 0 && _currentIndex < _agents.Count ? _agents[_currentIndex] : null;
 
     public SettingsForm(AppSettings settings, Action onSettingsSaved)
     {
         _settings = settings;
         _onSettingsSaved = onSettingsSaved;
+        _agents = settings.Agents.Select(a => a.Clone()).ToList();
 
         if (!string.IsNullOrEmpty(_settings.Language))
         {
@@ -76,7 +101,7 @@ public class SettingsForm : Form
 
         InitializeUI();
         LoadValues();
-        PopulateDefaultModels();
+        RefreshAgentList(0);
         ApplyLocalization();
     }
 
@@ -86,7 +111,7 @@ public class SettingsForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(520, 680);
+        ClientSize = new Size(520, 878);
 
         // Dimensioni gruppo connessione
         _grpConn.Location = new Point(15, 12);
@@ -144,47 +169,104 @@ public class SettingsForm : Form
             _btnCheckBalance, _lblBalanceInfo, _lblExpiryInfo
         });
 
-        // Modelli
-        _grpModels.Location = new Point(15, 285);
-        _grpModels.Size = new Size(490, 135);
+        // Agenti
+        _grpModels.Location = new Point(15, 290);
+        _grpModels.Size = new Size(490, 384);
 
-        _lblSelectModel.Location = new Point(15, 24);
+        // Riga 1: selezione agente + Nuovo / Elimina
+        _lblAgent.Location = new Point(15, 27);
+        _cmbAgents.Location = new Point(70, 21);
+        _cmbAgents.SelectedIndexChanged += (_, _) =>
+        {
+            if (_loadingAgent) return;
+            _currentIndex = _cmbAgents.SelectedIndex;
+            LoadAgentToEditor();
+        };
+        _btnNewAgent.Location = new Point(305, 20);
+        _btnNewAgent.Click += (_, _) => NewAgent();
+        _btnDeleteAgent.Location = new Point(385, 20);
+        _btnDeleteAgent.Click += (_, _) => DeleteCurrentAgent();
+
+        // Riga 2: nome agente
+        _lblAgentName.Location = new Point(15, 56);
+        _txtAgentName.Location = new Point(15, 74);
+        _txtAgentName.TextChanged += (_, _) => OnAgentNameChanged();
+
+        // Riga 3: modello reale + Seleziona / Copia ID / Copia Preset
+        _lblSelectModel.Location = new Point(15, 110);
         _lblSelectModel.AutoSize = true;
-        _cmbModels.Location = new Point(70, 21);
-        _cmbModels.SelectedIndexChanged += (_, _) => UpdateSelectedPresetDisplay();
+        _txtSelectedModel.Location = new Point(70, 105);
 
-        _btnCopyModelId.Location = new Point(305, 20);
+        _btnSelectModel.Location = new Point(305, 104);
+        _btnSelectModel.Click += (_, _) => OpenModelSelector();
+
+        _btnCopyModelId.Location = new Point(405, 104);
         _btnCopyModelId.Click += (_, _) =>
         {
-            if (_cmbModels.SelectedItem is ModelPreset selected)
+            if (CurrentAgent is { } agent)
             {
-                Clipboard.SetText(selected.Id);
-                MessageBox.Show(Loc.T("IdCopied", selected.Id), Loc.T("CopiedTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var name = agent.Name.Trim();
+                Clipboard.SetText(name);
+                MessageBox.Show(Loc.T("IdCopied", name), Loc.T("CopiedTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         };
 
-        _btnCopyPreset.Location = new Point(385, 20);
+        _btnCopyPreset.Location = new Point(15, 134);
         _btnCopyPreset.Click += (_, _) => CopyFullPreset();
 
-        _lblPresetContext.Location = new Point(15, 60);
-        _lblPresetOutput.Location = new Point(15, 83);
-        _lblPresetFeatures.Location = new Point(15, 106);
+        _lblPresetContext.Location = new Point(115, 138);
+
+        // Riga 4: limiti token + funzionalità
+        _lblMaxInput.Location = new Point(15, 168);
+        _numMaxInput.Location = new Point(15, 186);
+        _numMaxInput.ValueChanged += (_, _) => OnLimitsChanged();
+
+        _lblMaxOutput.Location = new Point(140, 168);
+        _numMaxOutput.Location = new Point(140, 186);
+        _numMaxOutput.ValueChanged += (_, _) => OnLimitsChanged();
+
+        _chkTools.Location = new Point(270, 185);
+        _chkTools.CheckedChanged += (_, _) => OnFeaturesChanged();
+        _chkVision.Location = new Point(270, 207);
+        _chkVision.CheckedChanged += (_, _) => OnFeaturesChanged();
+        _chkCache.Location = new Point(270, 229);
+        _chkCache.CheckedChanged += (_, _) => OnFeaturesChanged();
+
+        // Riga 5: markdown
+        _lblMarkdown.Location = new Point(15, 258);
+        _lblMarkdown.AutoSize = true;
+        _btnLoadMd.Location = new Point(295, 252);
+        _btnLoadMd.Click += (_, _) => LoadMarkdownFromFile();
+        _btnClearMd.Location = new Point(385, 252);
+        _btnClearMd.Click += (_, _) => _txtMarkdown.Clear();
+
+        _txtMarkdown.Location = new Point(15, 280);
+        _txtMarkdown.TextChanged += (_, _) =>
+        {
+            if (_loadingAgent || CurrentAgent is not { } agent) return;
+            // Nel TextBox le righe finiscono con \r\n; nei dati salviamo \n (formato standard per le API)
+            agent.Markdown = _txtMarkdown.Text.ReplaceLineEndings("\n");
+        };
 
         _grpModels.Controls.AddRange(new Control[] {
-            _lblSelectModel, _cmbModels, _btnCopyModelId, _btnCopyPreset,
-            _lblPresetContext, _lblPresetOutput, _lblPresetFeatures
+            _lblAgent, _cmbAgents, _btnNewAgent, _btnDeleteAgent,
+            _lblAgentName, _txtAgentName,
+            _lblSelectModel, _txtSelectedModel, _btnSelectModel, _btnCopyModelId, _btnCopyPreset,
+            _lblPresetContext,
+            _lblMaxInput, _numMaxInput, _lblMaxOutput, _numMaxOutput, _chkTools, _chkVision, _chkCache,
+            _lblMarkdown, _btnLoadMd, _btnClearMd, _txtMarkdown
         });
 
         // Guida
-        _grpGuide.Location = new Point(15, 430);
-        _grpGuide.Size = new Size(490, 190);
+        _grpGuide.Location = new Point(15, 686);
+        _grpGuide.Size = new Size(490, 140);
 
-        _txtGuide.Location = new Point(12, 22);
-        _txtGuide.Height = 155;
+        _txtGuide.Location = new Point(12, 20);
+        _txtGuide.Height = 110;
         _grpGuide.Controls.Add(_txtGuide);
 
         // Salva
-        _btnSave.Location = new Point(365, 630);
+        _btnSave.Location = new Point(365, 834);
         _btnSave.Click += BtnSave_Click;
 
         Controls.AddRange(new Control[] { _grpConn, _grpModels, _grpGuide, _btnSave });
@@ -192,7 +274,6 @@ public class SettingsForm : Form
 
     private void ApplyLocalization()
     {
-        _chkStartup.Text = Loc.T("RunStartup");
         Text = Loc.T("Title");
         _grpConn.Text = Loc.T("GrpConn");
         _lblKey.Text = Loc.T("ApiKey");
@@ -204,9 +285,23 @@ public class SettingsForm : Form
         _btnCheckBalance.Text = Loc.T("CheckBalance");
 
         _grpModels.Text = Loc.T("GrpModels");
+        _lblAgent.Text = Loc.T("Agent");
+        _btnNewAgent.Text = Loc.T("NewAgent");
+        _btnDeleteAgent.Text = Loc.T("DeleteAgent");
+        _lblAgentName.Text = Loc.T("AgentName");
         _lblSelectModel.Text = Loc.T("Model");
         _btnCopyModelId.Text = Loc.T("CopyId");
         _btnCopyPreset.Text = Loc.T("CopyPreset");
+        _lblMarkdown.Text = Loc.T("Markdown");
+        _btnLoadMd.Text = Loc.T("LoadFile");
+        _btnClearMd.Text = Loc.T("ClearMd");
+
+        _lblMaxInput.Text = Loc.T("MaxInput");
+        _lblMaxOutput.Text = Loc.T("MaxOutput");
+        _chkTools.Text = Loc.T("SupportsTools");
+        _chkVision.Text = Loc.T("SupportsVision");
+        _chkCache.Text = Loc.T("UsePromptCaching");
+        _btnSelectModel.Text = Loc.T("SelectModel");
 
         _grpGuide.Text = Loc.T("GrpGuide");
         _btnSave.Text = Loc.T("SaveRestart");
@@ -215,28 +310,209 @@ public class SettingsForm : Form
         UpdateGuideText();
     }
 
+    // ---------- Gestione agenti ----------
+
+    private void OpenModelSelector()
+    {
+        // Carica i modelli in modo asincrono se non sono già in cache
+        var models = ModelCatalog.Cached;
+        if (models.Count == 0)
+        {
+            // Tentativo di caricamento sincrono dalla cache su disco
+            models = ModelCatalog.Cached;
+        }
+
+        using var selector = new ModelSelectorForm(models, CurrentAgent?.ModelId ?? "")
+        {
+            Tag = _settings // Passa le impostazioni per il refresh
+        };
+
+        if (selector.ShowDialog(this) == DialogResult.OK)
+        {
+            if (CurrentAgent is { } agent)
+            {
+                agent.ModelId = selector.SelectedModelId;
+                _txtSelectedModel.Text = selector.SelectedModelId;
+                UpdateSelectedPresetDisplay();
+            }
+        }
+    }
+
+    /// <summary>Ricostruisce l'elenco degli agenti e seleziona quello all'indice indicato.</summary>
+    private void RefreshAgentList(int selectIndex)
+    {
+        _loadingAgent = true;
+        _cmbAgents.Items.Clear();
+        foreach (var a in _agents) _cmbAgents.Items.Add(a);
+        _currentIndex = _agents.Count == 0 ? -1 : Math.Clamp(selectIndex, 0, _agents.Count - 1);
+        _cmbAgents.SelectedIndex = _currentIndex;
+        _loadingAgent = false;
+
+        LoadAgentToEditor();
+    }
+
+    /// <summary>Copia i dati dell'agente selezionato nei controlli (nome, modello, markdown).</summary>
+    private void LoadAgentToEditor()
+    {
+        _loadingAgent = true;
+        try
+        {
+            var agent = CurrentAgent;
+            SetEditorEnabled(agent != null);
+
+            if (agent == null)
+            {
+                _txtAgentName.Text = "";
+                _txtSelectedModel.Text = "";
+                _txtMarkdown.Text = "";
+                _numMaxInput.Value = 0;
+                _numMaxOutput.Value = 0;
+                _chkTools.Checked = true;
+                _chkVision.Checked = true;
+                _chkCache.Checked = false;
+            }
+            else
+            {
+                _txtAgentName.Text = agent.Name;
+                _txtSelectedModel.Text = string.IsNullOrWhiteSpace(agent.ModelId) ? Loc.T("NoModelSelected") : agent.ModelId;
+
+                _numMaxInput.Value = Math.Clamp(agent.MaxInputTokens, 0, (int)_numMaxInput.Maximum);
+                _numMaxOutput.Value = Math.Clamp(agent.MaxOutputTokens, 0, (int)_numMaxOutput.Maximum);
+                _chkTools.Checked = agent.SupportsTools;
+                _chkVision.Checked = agent.SupportsVision;
+                _chkCache.Checked = agent.UsePromptCaching;
+
+                // Il TextBox vuole \r\n come fine riga, altrimenti mostra tutto su una riga
+                _txtMarkdown.Text = agent.Markdown.ReplaceLineEndings();
+            }
+        }
+        finally
+        {
+            _loadingAgent = false;
+        }
+        UpdateSelectedPresetDisplay();
+    }
+
+    private void SetEditorEnabled(bool enabled)
+    {
+        _txtAgentName.Enabled = enabled;
+        _txtSelectedModel.Enabled = enabled;
+        _btnSelectModel.Enabled = enabled;
+        _btnCopyModelId.Enabled = enabled;
+        _btnCopyPreset.Enabled = enabled;
+        _btnDeleteAgent.Enabled = enabled;
+        _btnLoadMd.Enabled = enabled;
+        _btnClearMd.Enabled = enabled;
+        _txtMarkdown.Enabled = enabled;
+        _numMaxInput.Enabled = enabled;
+        _numMaxOutput.Enabled = enabled;
+        _chkTools.Enabled = enabled;
+        _chkVision.Enabled = enabled;
+        _chkCache.Enabled = enabled;
+    }
+
+    private void OnAgentNameChanged()
+    {
+        if (_loadingAgent || CurrentAgent is not { } agent) return;
+        agent.Name = _txtAgentName.Text;
+
+        // Aggiorna il testo mostrato nell'elenco a tendina
+        _loadingAgent = true;
+        _cmbAgents.Items[_currentIndex] = agent;
+        _cmbAgents.SelectedIndex = _currentIndex;
+        _loadingAgent = false;
+    }
+
+    private void OnLimitsChanged()
+    {
+        if (_loadingAgent || CurrentAgent is not { } agent) return;
+        agent.MaxInputTokens = (int)_numMaxInput.Value;
+        agent.MaxOutputTokens = (int)_numMaxOutput.Value;
+    }
+
+    private void OnFeaturesChanged()
+    {
+        if (_loadingAgent || CurrentAgent is not { } agent) return;
+        agent.SupportsTools = _chkTools.Checked;
+        agent.SupportsVision = _chkVision.Checked;
+        agent.UsePromptCaching = _chkCache.Checked;
+    }
+
+    private void NewAgent()
+    {
+        int n = _agents.Count + 1;
+        string name;
+        do { name = $"agent-{n++}"; }
+        while (_agents.Any(a => a.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+
+        _agents.Add(new AgentProfile
+        {
+            Name = name,
+            ModelId = ""
+        });
+        RefreshAgentList(_agents.Count - 1);
+
+        _txtAgentName.Focus();
+        _txtAgentName.SelectAll();
+    }
+
+    private void DeleteCurrentAgent()
+    {
+        if (CurrentAgent is not { } agent) return;
+
+        var answer = MessageBox.Show(Loc.T("ConfirmDelete", agent.Name), Loc.T("Title"),
+            MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        if (answer != DialogResult.Yes) return;
+
+        _agents.RemoveAt(_currentIndex);
+        RefreshAgentList(_currentIndex);
+    }
+
+    private void LoadMarkdownFromFile()
+    {
+        using var dlg = new OpenFileDialog
+        {
+            Filter = "Markdown (*.md;*.markdown;*.txt)|*.md;*.markdown;*.txt|*.*|*.*"
+        };
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+        try
+        {
+            _txtMarkdown.Text = File.ReadAllText(dlg.FileName).ReplaceLineEndings();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    // ---------- Preset / guida ----------
+
     private void UpdateSelectedPresetDisplay()
     {
-        if (_cmbModels.SelectedItem is ModelPreset preset)
+        var agent = CurrentAgent;
+        if (agent != null && agent.MaxInputTokens > 0)
         {
-            _lblPresetContext.Text = Loc.T("ContextLimit", preset.SuggestedContext);
-            _lblPresetOutput.Text = Loc.T("OutputLimit", preset.SuggestedOutput);
-            _lblPresetFeatures.Text = Loc.T("Features", preset.SupportsTools ? "X" : " ", preset.SupportsVision ? "X" : " ");
+            _lblPresetContext.Text = Loc.T("ContextLimit", agent.MaxInputTokens);
+        }
+        else
+        {
+            _lblPresetContext.Text = "";
         }
     }
 
     private void CopyFullPreset()
     {
-        if (_cmbModels.SelectedItem is ModelPreset preset)
+        if (CurrentAgent is { } agent)
         {
             var text =
-                $"Display Name: {preset.DisplayName.Split('(')[0].Trim()}\n" +
-                $"Model ID: {preset.Id}\n" +
+                $"Display Name: {agent.Name.Trim()}\n" +
+                $"Model ID: {agent.Name.Trim()}\n" +
                 $"Endpoint: http://localhost:{(int)_numPort.Value}/v1\n" +
-                $"Context Limit: {preset.SuggestedContext}\n" +
-                $"Output Limit: {preset.SuggestedOutput}\n" +
-                $"Tool calling: {(preset.SupportsTools ? Loc.T("Yes") : Loc.T("No"))}\n" +
-                $"Vision support: {(preset.SupportsVision ? Loc.T("Yes") : Loc.T("No"))}";
+                $"Context Limit: {agent.MaxInputTokens}\n" +
+                $"Output Limit: {agent.MaxOutputTokens}\n" +
+                $"Tool calling: {(agent.SupportsTools ? Loc.T("Yes") : Loc.T("No"))}\n" +
+                $"Vision support: {(agent.SupportsVision ? Loc.T("Yes") : Loc.T("No"))}";
 
             Clipboard.SetText(text);
             MessageBox.Show(Loc.T("PresetCopied", text), Loc.T("CopiedTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -252,7 +528,8 @@ public class SettingsForm : Form
             $"{Loc.T("GuideStep3", p)}\n" +
             $"{Loc.T("GuideStep4")}\n" +
             $"{Loc.T("GuideStep5")}\n" +
-            $"{Loc.T("GuideStep6")}";
+            $"{Loc.T("GuideStep6")}\n" +
+            $"{Loc.T("GuideCache")}";
     }
 
     private async Task CheckBalanceAsync()
@@ -329,17 +606,6 @@ public class SettingsForm : Form
         }
     }
 
-    private void PopulateDefaultModels()
-    {
-        _cmbModels.Items.Clear();
-        foreach (var m in _modelPresets) _cmbModels.Items.Add(m);
-        if (_cmbModels.Items.Count > 0)
-        {
-            _cmbModels.SelectedIndex = 0;
-            UpdateSelectedPresetDisplay();
-        }
-    }
-
     private void LoadValues()
     {
         _txtApiKey.Text = _settings.ApiKey;
@@ -350,10 +616,22 @@ public class SettingsForm : Form
 
     private void BtnSave_Click(object? sender, EventArgs e)
     {
+        // Pulizia e controllo dei nomi: devono essere non vuoti e unici (senza distinguere maiuscole/minuscole)
+        foreach (var a in _agents) a.Name = a.Name.Trim();
+
+        bool invalid = _agents.Any(a => string.IsNullOrWhiteSpace(a.Name)) ||
+                       _agents.GroupBy(a => a.Name, StringComparer.OrdinalIgnoreCase).Any(g => g.Count() > 1);
+        if (invalid)
+        {
+            MessageBox.Show(Loc.T("AgentNameInvalid"), "OneProvider Proxy", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
         _settings.ApiKey = _txtApiKey.Text.Trim();
         _settings.TargetEndpoint = _txtEndpoint.Text.Trim().TrimEnd('/');
         _settings.Port = (int)_numPort.Value;
         _settings.Language = Loc.CurrentLanguage;
+        _settings.Agents = _agents.Select(a => a.Clone()).ToList();
         _settings.Save();
 
         StartupHelper.SetRunAtStartup(_chkStartup.Checked);
@@ -373,13 +651,7 @@ public class SettingsForm : Form
         base.OnFormClosing(e);
     }
 
-    private record ModelPreset(
-        string DisplayName,
-        string Id,
-        int SuggestedContext,
-        int SuggestedOutput,
-        bool SupportsTools,
-        bool SupportsVision)
+    private record ModelPreset(string DisplayName, string Id)
     {
         public override string ToString() => DisplayName;
     }

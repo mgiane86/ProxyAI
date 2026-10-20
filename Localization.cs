@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -38,13 +38,35 @@ public static class Loc
         ["Language"] = ("Language / Lingua:", "Lingua / Language:"),
 
         // Settings Form - Presets Group
-        ["GrpModels"] = ("Catalog & Recommended Presets for Visual Studio", "Catalogo & Preset Token Consigliati per Visual Studio"),
+        ["GrpModels"] = ("Agents (shown as models in Visual Studio)", "Agenti (mostrati come modelli in Visual Studio)"),
+        ["Agent"] = ("Agent:", "Agente:"),
+        ["NewAgent"] = ("New", "Nuovo"),
+        ["DeleteAgent"] = ("Delete", "Elimina"),
+        ["AgentName"] = ("Agent name (this is the Model ID used in Visual Studio):", "Nome agente (è l'ID modello da usare in Visual Studio):"),
+        ["Markdown"] = ("Instructions (Markdown) - empty = none:", "Istruzioni (Markdown) - vuoto = nessuna:"),
+        ["LoadFile"] = ("Load .md...", "Carica .md..."),
+        ["ClearMd"] = ("Clear", "Svuota"),
+        ["AgentNameInvalid"] = ("Every agent needs a unique, non-empty name.", "Ogni agente deve avere un nome unico e non vuoto."),
+        ["ConfirmDelete"] = ("Delete agent '{0}'?", "Eliminare l'agente '{0}'?"),
         ["Model"] = ("Model:", "Modello:"),
         ["CopyId"] = ("Copy ID", "Copia ID"),
         ["CopyPreset"] = ("Copy Preset", "Copia Preset"),
         ["ContextLimit"] = ("• Context Window (Left): {0:N0} tokens", "• Limite Contesto (Sinistra): {0:N0} token"),
         ["OutputLimit"] = ("• Max Output (Right): {0:N0} tokens", "• Limite Max Output (Destra): {0:N0} token"),
         ["Features"] = ("• Flags: [{0}] Tool calling  |  [{1}] Image support", "• Spunte: [{0}] Chiamata strumenti  |  [{1}] Supporto immagini"),
+        ["MaxInput"] = ("Max input tokens", "Token input max"),
+        ["MaxOutput"] = ("Max output tokens", "Token output max"),
+        ["SupportsTools"] = ("Tool calling", "Chiamata strumenti"),
+        ["SupportsVision"] = ("Image support", "Supporto immagini"),
+        ["UsePromptCaching"] = ("Prompt caching (cheaper repeated prompt)", "Prompt caching (prompt ripetuto più economico)"),
+        ["Refresh"] = ("Refresh", "Aggiorna"),
+        ["SelectModel"] = ("Select Model", "Seleziona Modello"),
+        ["SearchModel"] = ("Search (name or ID):", "Cerca (nome o ID):"),
+        ["SelectedModel"] = ("Selected: {0}", "Selezionato: {0}"),
+        ["NoModelSelected"] = ("(no model selected)", "(nessun modello selezionato)"),
+        ["RefreshModels"] = ("Refresh from API", "Aggiorna da API"),
+        ["Cancel"] = ("Cancel", "Annulla"),
+        ["OtherModels"] = ("Other Models", "Altri Modelli"),
         ["Yes"] = ("Yes", "Sì"),
         ["No"] = ("No", "No"),
 
@@ -53,9 +75,10 @@ public static class Loc
         ["GuideStep1"] = ("1. In Visual Studio open: Copilot > Manage models > Bring Your Own Model.", "1. In Visual Studio vai su: Copilot > Gestisci modelli > Bring Your Own Model."),
         ["GuideStep2"] = ("2. Provider: select 'Ollama'.", "2. Provider: seleziona 'Ollama'."),
         ["GuideStep3"] = ("3. Resource endpoint: http://localhost:{0}/v1", "3. Endpoint risorsa: http://localhost:{0}/v1"),
-        ["GuideStep4"] = ("4. Model ID: pick a model above and click 'Copy ID'.", "4. ID modello: seleziona il modello sopra e clicca 'Copia ID'."),
+        ["GuideStep4"] = ("4. Model ID: pick an agent above and click 'Copy ID'.", "4. ID modello: seleziona l'agente sopra e clicca 'Copia ID'."),
         ["GuideStep5"] = ("5. Token limits: set values suggested above (Left: Context, Right: Output).", "5. Limite token: imposta i valori suggeriti sopra (Sinistra: Contesto, Destra: Output)."),
         ["GuideStep6"] = ("6. Check recommended feature boxes, click 'Add' and 'Save'.", "6. Spunta le funzionalità consigliate (Strumenti/Immagini), clicca 'Aggiungi' e poi 'Salva'."),
+        ["GuideCache"] = ("Tip: enable 'Prompt caching' to pay the big markdown prompt once, then ~10% on every reuse.", "Suggerimento: attiva 'Prompt caching' per pagare il markdown una volta sola e poi ~10% a ogni riuso."),
 
         // Buttons & Messages
         ["SaveRestart"] = ("Save & Restart", "Salva e Riavvia"),
