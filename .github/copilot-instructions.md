@@ -4,17 +4,25 @@ Sintesi operativa del progetto. **Leggi questo file prima di esplorare il codice
 
 ## Cos'è
 
-App WinForms .NET 10 (`net10.0-windows`) che gira come icona di sistema (tray). Espone un proxy HTTP locale (`http://localhost:11434`) compatibile con i provider **[OI]** e **Ollama**, e inoltra le richieste a **OneProvider** (`https://api.oneprovider.dev`). Ogni `AgentProfile` è presentato al client (Visual Studio → *Bring Your Own Model*) come se fosse un modello; il suo testo `Markdown` viene iniettato come messaggio `system`.
+App WinForms .NET 10 (`net10.0-windows`) che gira come icona di sistema (tray). Espone un proxy HTTP locale (`http://localhost:11435`) compatibile con i provider **[OI]** e **Ollama**, e inoltra le richieste a **OneProvider** (`https://api.oneprovider.dev`). Ogni `AgentProfile` è presentato al client (Visual Studio → *Bring Your Own Model*) come se fosse un modello; il suo testo `Markdown` viene iniettato come messaggio `system`.
 
-- Namespace: **`OneProviderProxy`** (unica eccezione: `Form1.cs`, residuo del template con namespace `ProxyAI`, codice morto).
+- Namespace: **`OneProviderProxy`** (unico in tutto il progetto).
 - Soluzione: `ProxyAI.slnx` · Progetto: `ProxyAI.csproj` · **nessun pacchetto NuGet**, solo BCL.
 - Interfaccia e commenti del codice sono **in italiano**: mantenerli tali.
 
+## Documentazione (leggila invece dei sorgenti)
+
+| File | Contenuto |
+| :--- | :--- |
+| `README.md` | Presentazione per chi arriva da fuori (in inglese): requisiti, quick start, guida Visual Studio, limiti noti |
+| `MarkDown/ARCHITECTURE.md` | Flusso di una richiesta, trasformazione del body, stato persistente, vincoli tecnici, debito tecnico |
+| `MarkDown/CODE_REFERENCE.md` | Reference di ogni classe e metodo, con firme e "dove intervenire" |
 
 ## Mappa dei file (una riga ciascuno)
 
 | File | Ruolo |
 | :--- | :--- |
+| `README.md` / `LICENSE` | Documento di ingresso per un tester esterno; licenza MIT |
 | `Program.cs` | Entry point, mutex singola istanza, `TrayApplicationContext` (icona, menu, tooltip, saldo) |
 | `ProxyServer.cs` | **Cuore**: `HttpListener`, forwarding, `ApplyAgent` (agente→modello, markdown→system, limiti token, tools/vision, prompt caching), streaming SSE, metriche |
 | `Settings.cs` | `AppSettings` + persistenza `appsettings.json` |
@@ -55,7 +63,7 @@ App WinForms .NET 10 (`net10.0-windows`) che gira come icona di sistema (tray). 
 
 ## Debito tecnico noto (non reintrodurlo, non segnalarlo come nuovo)
 
-`Form1.*` codice morto · `ModelCatalog.Cached` vuota all'avvio (il selettore modello richiede *Refresh from API*) · scritture JSON non atomiche · tariffe hardcoded in `ProxyServer` · `LogForm` senza limite di righe · `LogForm.Text` sovrascritto dopo `Loc.T("LogTitle")` · `Loc.CurrentLanguage` statico globale · nessun test automatico.
+`ModelCatalog.Cached` vuota all'avvio
 
 ## Build
 

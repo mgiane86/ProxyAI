@@ -9,7 +9,8 @@ public class AppSettings
 {
     public string ApiKey { get; set; } = "";
     public string TargetEndpoint { get; set; } = "https://api.oneprovider.dev";
-    public int Port { get; set; } = 11434;
+    // 11435 e non 11434: la porta di default di Ollama è già occupata quando Ollama è in esecuzione.
+    public int Port { get; set; } = 11435;
     public string Language { get; set; } = "";
     public List<AgentProfile> Agents { get; set; } = new();
 

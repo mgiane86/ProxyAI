@@ -15,7 +15,7 @@ Il suo valore aggiunto non è il forwarding (banale), ma la **finzione degli "ag
 
 ```
 Visual Studio (provider "Ollama")
-		│  POST http://localhost:11434/v1/chat/completions
+		│  POST http://localhost:11435/v1/chat/completions
 		▼
    ProxyServer (HttpListener, 1 thread accept + Task per richiesta)
 		│  1. riscrive "model": "<nome agente>"  →  "<modello OneProvider>"
@@ -105,7 +105,7 @@ Tutti i file stanno in `AppDomain.CurrentDomain.BaseDirectory` (in debug: `bin\D
 
 | File | Classe | Contenuto |
 | :--- | :--- | :--- |
-| `appsettings.json` | `AppSettings` | `ApiKey`, `TargetEndpoint`, `Port`, `Language`, `Agents[]`. **Contiene la chiave API in chiaro.** |
+| `appsettings.json` | `AppSettings` | `ApiKey`, `TargetEndpoint`, `Port` (default **11435**, non 11434: quella è la porta di Ollama), `Language`, `Agents[]`. **Contiene la chiave API in chiaro.** |
 | `daily_stats.json` | `UsageTracker` | Token e costo del giorno corrente + ultimo saldo noto. Si azzera automaticamente al cambio data (conservando il saldo). |
 | `models_cache.json` | `ModelCatalog` | Ultimo elenco di modelli OneProvider, per usare la finestra impostazioni offline. |
 
@@ -150,7 +150,6 @@ Al primo avvio (o se `Agents` è vuoto) `AppSettings.SeedDefaultAgentsIfEmpty()`
 | `SettingsForm` | Configurazione completa | Lavora su **copie** degli agenti (`Clone()`); nulla viene applicato prima di *Salva e Riavvia*. Flag `_loadingAgent` impedisce che il caricamento dei controlli riscriva i dati. |
 | `LogForm` | Log colorato in tempo reale | `AppendLog` è thread-safe (`InvokeRequired` → `BeginInvoke`). |
 | `ModelSelectorForm` | Scelta del modello reale | `TreeView` raggruppato per famiglia, filtro testuale, refresh da API. Riceve `AppSettings` tramite `Tag`. |
-| `Form1` | **Residuo del template** | Namespace `ProxyAI`, mai istanziato. Non fa parte del flusso. |
 
 ---
 
@@ -173,8 +172,7 @@ Sono tutte regole nate da bug reali già risolti: reintrodurle significa ricrear
 
 Utile da sapere prima di intervenire, per non confonderlo con un bug appena introdotto.
 
-- `Form1.cs` / `Form1.Designer.cs` / `Form1.resx`: residui del template, namespace `ProxyAI` diverso dal resto. Rimovibili.
-- `ModelCatalog.Cached` viene letto da `SettingsForm.OpenModelSelector` ma **non** viene popolato all'avvio: il primo `Select Model` mostra una lista vuota finché non si preme *Refresh from API*. `ModelCatalog.FetchAsync` esiste e funziona, ma nessuno lo chiama all'apertura del form.
+- `ModelCatalog.Cached` viene letto da `SettingsForm.OpenModelSelector`
 - `UsageTracker` e `AppSettings` scrivono con `File.WriteAllText` non atomico e `catch {}` silenzioso: un crash durante il salvataggio può corrompere il file senza alcun segnale.
 - Costi e tariffe sono hardcoded in `ProxyServer`; il calcolo non distingue modello né listino.
 - `LogForm` non ha limite di righe: sessioni lunghe con molte richieste accumulano memoria.

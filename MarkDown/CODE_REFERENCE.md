@@ -1,7 +1,7 @@
 # ProxyAI · Code Reference (API per file)
 
 > Versione: 1.0
-> Namespace unico: **`OneProviderProxy`** (eccezione: `Form1.cs` usa `ProxyAI`)
+> Namespace unico: **`OneProviderProxy`**
 > Target: `net10.0-windows` · WinForms · nullable abilitato · implicit usings attivi
 > Documento complementare: `ARCHITECTURE.md` (flusso e vincoli), `.github/copilot-instructions.md` (sintesi).
 
@@ -94,7 +94,7 @@ Evento: `Action<string, Color>? OnLog`. Proprietà: `bool IsRunning`.
 ## `Settings.cs` ✅
 
 ### `class AppSettings`
-`ApiKey`, `TargetEndpoint` (`https://api.oneprovider.dev`), `Port` (`11434`), `Language` (`""`), `Agents` (`List<AgentProfile>`).
+`ApiKey`, `TargetEndpoint` (`https://api.oneprovider.dev`), `Port` (`11435`), `Language` (`""`), `Agents` (`List<AgentProfile>`).
 `ConfigPath` = `BaseDirectory/appsettings.json` (statico, privato).
 
 | Membro | Note |
@@ -226,12 +226,6 @@ Gruppi UI: `_grpConn` (connessione + saldo + lingua + avvio automatico), `_grpMo
 ## `OneProvider.cs` ✅
 
 `class OneProviderBalance` : `Object`, `BalanceUsd` (`balance_usd`, `decimal`), `ExpiresAt` (`expires_at`, `DateTime?`), `IsActive` (`is_active`), `LastSyncedAt` (`last_synced_at`, `DateTime?`). Usato da `Program.RefreshBalanceInBackgroundAsync` e `SettingsForm.CheckBalanceAsync`.
-
----
-
-## `Form1.cs` / `Form1.Designer.cs` / `Form1.resx` ❌
-
-Residuo del template: namespace `ProxyAI`, `InitializeComponent()` vuoto, mai istanziato. Rimovibile senza impatti.
 
 ---
 
