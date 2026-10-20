@@ -10,14 +10,6 @@ App WinForms .NET 10 (`net10.0-windows`) che gira come icona di sistema (tray). 
 - Soluzione: `ProxyAI.slnx` · Progetto: `ProxyAI.csproj` · **nessun pacchetto NuGet**, solo BCL.
 - Interfaccia e commenti del codice sono **in italiano**: mantenerli tali.
 
-## Documentazione del progetto (leggila invece dei sorgenti)
-
-| File | Contenuto |
-| :--- | :--- |
-| `MarkDown/ARCHITECTURE.md` | Flusso di una richiesta, trasformazione del body, stato persistente, vincoli tecnici da non violare, debito tecnico |
-| `MarkDown/CODE_REFERENCE.md` | Reference di **ogni** classe e metodo, con firme, comportamenti e "dove intervenire" |
-| `MarkDown/CODING_PROTOCOL.md` | Standard di codice (ereditato da un altro progetto: usare solo le regole generali, non il dominio POS) |
-| `MarkDown/PLAN_AND_DELEGATION_PROTOCOL.md` | Contratto piano/brief/rapporto per il lavoro multi-agente |
 
 ## Mappa dei file (una riga ciascuno)
 
@@ -59,7 +51,7 @@ App WinForms .NET 10 (`net10.0-windows`) che gira come icona di sistema (tray). 
 - `/api/tags` e `/api/show` sono risposte finte: servono solo al provider "Ollama" di Visual Studio.
 - Il troncamento dei messaggi rimuove **turni interi** (mai `system`, mai l'ultimo turno): tagliare a metà lascerebbe messaggi `tool` orfani e l'upstream risponde 400.
 - I file di stato stanno accanto all'eseguibile (`bin\…`), **non** in `%AppData%`.
-- `appsettings.json` contiene la **API key in chiaro**: non versionarlo, non copiarlo in cartelle sincronizzate.
+- `appsettings.json` contiene la **API key in chiaro**: è in `.gitignore` insieme a `daily_stats.json` e `models_cache.json`; non rimuovere quelle regole, non copiare i file in cartelle sincronizzate.
 
 ## Debito tecnico noto (non reintrodurlo, non segnalarlo come nuovo)
 

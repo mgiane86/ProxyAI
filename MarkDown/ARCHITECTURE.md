@@ -109,7 +109,7 @@ Tutti i file stanno in `AppDomain.CurrentDomain.BaseDirectory` (in debug: `bin\D
 | `daily_stats.json` | `UsageTracker` | Token e costo del giorno corrente + ultimo saldo noto. Si azzera automaticamente al cambio data (conservando il saldo). |
 | `models_cache.json` | `ModelCatalog` | Ultimo elenco di modelli OneProvider, per usare la finestra impostazioni offline. |
 
-Nessuno dei tre file è versionato: `appsettings.json` non deve mai finire in un repository o in una cartella sincronizzata.
+Nessuno dei tre file è versionato: sono elencati in `.gitignore`. `appsettings.json` non deve mai finire in un repository o in una cartella sincronizzata, perché contiene la chiave API in chiaro.
 
 ---
 

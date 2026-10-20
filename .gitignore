@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# ProxyAI - stato locale dell'applicazione (accanto all'eseguibile)
+# appsettings.json contiene la API key di OneProvider IN CHIARO: non va versionato.
+appsettings.json
+daily_stats.json
+models_cache.json
