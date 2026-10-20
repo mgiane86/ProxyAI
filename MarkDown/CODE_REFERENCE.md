@@ -1,6 +1,6 @@
 # ProxyAI · Code Reference (API per file)
 
-> Versione: 1.0
+> Versione: 1.1
 > Namespace unico: **`OneProviderProxy`**
 > Target: `net10.0-windows` · WinForms · nullable abilitato · implicit usings attivi
 > Documento complementare: `ARCHITECTURE.md` (flusso e vincoli), `.github/copilot-instructions.md` (sintesi).

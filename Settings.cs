@@ -12,6 +12,10 @@ public class AppSettings
     // 11435 e non 11434: la porta di default di Ollama è già occupata quando Ollama è in esecuzione.
     public int Port { get; set; } = 11435;
     public string Language { get; set; } = "";
+
+    // Tema della UI: "light" oppure "dark". Non ha alcun effetto sul proxy.
+    public string Theme { get; set; } = "light";
+
     public List<AgentProfile> Agents { get; set; } = new();
 
     private static readonly string ConfigPath = Path.Combine(

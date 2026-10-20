@@ -56,13 +56,27 @@ public class TrayApplicationContext : ApplicationContext
     public TrayApplicationContext()
     {
         _settings = AppSettings.Load();
+
+        // Applica il tema salvato prima di creare il server e le finestre
+        if (!string.IsNullOrEmpty(_settings.Language))
+            Loc.CurrentLanguage = _settings.Language;
+
+        Theme.Set(Theme.Parse(_settings.Theme));
+
+        // Forza la creazione dell'handle del LogForm anche se nascosto: necessario per
+        // BeginInvoke in AppendLog (altrimenti le prime richieste non vengono loggate
+        // e il proxy sembra non rispondere finché la finestra non viene aperta)
+        _ = _logForm.Handle;
+
         _server = CreateProxyServer();
 
         var contextMenu = new ContextMenuStrip();
-        contextMenu.Items.Add("Configurazione...", null, (_, _) => ShowSettings());
-        contextMenu.Items.Add("Mostra Log...", null, (_, _) => ShowLog());
+        contextMenu.Items.Add(Loc.T("TraySettings"), null, (_, _) => ShowSettings());
+        contextMenu.Items.Add(Loc.T("TrayLog"), null, (_, _) => ShowLog());
         contextMenu.Items.Add(new ToolStripSeparator());
-        contextMenu.Items.Add("Esci", null, (_, _) => Exit());
+        contextMenu.Items.Add(Loc.T("TrayExit"), null, (_, _) => Exit());
+
+        Theme.ApplyMenu(contextMenu);
 
         _trayIcon = new NotifyIcon
         {
@@ -78,6 +92,13 @@ public class TrayApplicationContext : ApplicationContext
 
         // Aggiorna il tooltip dinamicamente ogni volta che il mouse passa sopra l'icona
         _trayIcon.MouseMove += (_, _) => UpdateTrayToolTip();
+
+        // Riaggancia il tema al menu quando il tema cambia
+        Theme.Changed += () =>
+        {
+            if (_trayIcon.ContextMenuStrip != null)
+                Theme.ApplyMenu(_trayIcon.ContextMenuStrip);
+        };
 
         _messageReceiver = new MessageReceiverWindow(ShowSettings);
 

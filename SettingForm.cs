@@ -1,4 +1,3 @@
-﻿using Microsoft.VisualBasic.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,7 +11,7 @@ using System.Windows.Forms;
 
 namespace OneProviderProxy;
 
-public class SettingsForm : Form
+public class SettingsForm : ThemedForm
 {
     private readonly AppSettings _settings;
     private readonly Action _onSettingsSaved;
@@ -22,68 +21,79 @@ public class SettingsForm : Form
     private int _currentIndex = -1;
     private bool _loadingAgent; // true mentre riempiamo i controlli da codice: evita che gli eventi riscrivano i dati
 
+    // Navigazione laterale
+    private readonly Panel _navPanel = new() { Dock = DockStyle.Left, Width = 180 };
+    private readonly NavButton _navConnection = new();
+    private readonly NavButton _navAgents = new();
+    private readonly NavButton _navGuide = new();
+    private readonly Panel _contentPanel = new() { Dock = DockStyle.Fill };
+
     // Connessione
-    private readonly GroupBox _grpConn = new();
-    private readonly Label _lblKey = new();
-    private readonly TextBox _txtApiKey = new() { Width = 455, UseSystemPasswordChar = true };
+    private readonly CardPanel _cardConn = new() { Dock = DockStyle.Fill };
+    private readonly TextBox _txtApiKey = new() { Width = 400, UseSystemPasswordChar = true };
     private readonly CheckBox _chkShowKey = new() { AutoSize = true };
-    private readonly Label _lblEndpoint = new();
-    private readonly TextBox _txtEndpoint = new() { Width = 455 };
-    private readonly Label _lblPort = new();
-    private readonly NumericUpDown _numPort = new() { Width = 90, Minimum = 1024, Maximum = 65535 };
+    private readonly TextBox _txtEndpoint = new() { Width = 400 };
+    private readonly NumericUpDown _numPort = new() { Width = 110, Minimum = 1024, Maximum = 65535 };
     private readonly CheckBox _chkStartup = new() { AutoSize = true };
-    private readonly Label _lblLang = new() { AutoSize = true };
-    private readonly ComboBox _cmbLang = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110 };
-
-    // Saldo
-    private readonly Button _btnCheckBalance = new() { Size = new Size(130, 32) };
+    private readonly ComboBox _cmbLang = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
+    private readonly ComboBox _cmbTheme = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 130 };
+    private readonly Button _btnCheckBalance = new() { AutoSize = true, Padding = new Padding(14, 8, 14, 8), Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
     private readonly Label _lblBalanceInfo = new() { AutoSize = true, Font = new Font("Segoe UI", 9f, FontStyle.Bold) };
-    private readonly Label _lblExpiryInfo = new() { AutoSize = true, Font = new Font("Segoe UI", 8.5f, FontStyle.Regular), ForeColor = Color.DimGray };
+    private readonly Label _lblExpiryInfo = new() { AutoSize = true, ForeColor = Color.DimGray };
 
-    // Agenti & Modelli
-    private readonly GroupBox _grpModels = new();
-    private readonly Label _lblAgent = new() { AutoSize = true };
-    private readonly ComboBox _cmbAgents = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
-    private readonly Button _btnNewAgent = new() { Size = new Size(75, 26) };
-    private readonly Button _btnDeleteAgent = new() { Size = new Size(95, 26) };
-    private readonly Label _lblAgentName = new() { AutoSize = true };
-    private readonly TextBox _txtAgentName = new() { Width = 455 };
-    private readonly Label _lblSelectModel = new();
-    private readonly TextBox _txtSelectedModel = new() { Width = 230, ReadOnly = true, BackColor = Color.White };
-    private readonly Button _btnSelectModel = new() { Size = new Size(95, 26) };
-    private readonly Button _btnCopyModelId = new() { Size = new Size(75, 26) };
-    private readonly Button _btnCopyPreset = new() { Size = new Size(95, 26) };
+    // Label localizzabili per la card connessione
+    private readonly Label _lblApiKeyLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblEndpointLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblPortLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblLanguageLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblThemeLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblBalanceLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
 
-    private readonly Label _lblPresetContext = new() { AutoSize = true, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold), ForeColor = Color.FromArgb(0, 102, 204) };
-
-    // Limiti token e funzionalità dell'agente
-    private readonly Label _lblMaxInput = new() { AutoSize = false, Width = 118, Height = 16 };
-    private readonly NumericUpDown _numMaxInput = new() { Width = 110, Minimum = 0, Maximum = 2_000_000, Increment = 1000 };
-    private readonly Label _lblMaxOutput = new() { AutoSize = false, Width = 118, Height = 16 };
-    private readonly NumericUpDown _numMaxOutput = new() { Width = 110, Minimum = 0, Maximum = 2_000_000, Increment = 1000 };
+    // Agenti
+    private readonly CardPanel _cardAgents = new() { Dock = DockStyle.Fill };
+    private readonly ListBox _lstAgents = new() { Dock = DockStyle.Fill, IntegralHeight = false };
+    private readonly Button _btnNewAgent = new() { Dock = DockStyle.Top, Height = 36, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+    private readonly Button _btnDeleteAgent = new() { Dock = DockStyle.Top, Height = 36, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+    private readonly TextBox _txtAgentName = new() { Dock = DockStyle.Fill };
+    private readonly TextBox _txtSelectedModel = new() { Dock = DockStyle.Fill, ReadOnly = true };
+    private readonly Button _btnSelectModel = new() { AutoSize = true, Padding = new Padding(12, 8, 12, 8), Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+    private readonly Button _btnCopyModelId = new() { AutoSize = true, Padding = new Padding(12, 8, 12, 8), Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+    private readonly Button _btnCopyPreset = new() { AutoSize = true, Padding = new Padding(12, 8, 12, 8), Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+    private readonly Label _lblPresetContext = new() { AutoSize = true, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold) };
+    private readonly NumericUpDown _numMaxInput = new() { Width = 120, Minimum = 0, Maximum = 2_000_000, Increment = 1000 };
+    private readonly NumericUpDown _numMaxOutput = new() { Width = 120, Minimum = 0, Maximum = 2_000_000, Increment = 1000 };
     private readonly CheckBox _chkTools = new() { AutoSize = true };
     private readonly CheckBox _chkVision = new() { AutoSize = true };
     private readonly CheckBox _chkCache = new() { AutoSize = true };
-
-    // Markdown dell'agente
-    private readonly Label _lblMarkdown = new() { AutoSize = true };
-    private readonly Button _btnLoadMd = new() { Size = new Size(85, 26) };
-    private readonly Button _btnClearMd = new() { Size = new Size(85, 26) };
     private readonly TextBox _txtMarkdown = new()
     {
         Multiline = true,
         AcceptsReturn = true,
         ScrollBars = ScrollBars.Vertical,
         Font = new Font("Consolas", 9f),
-        Width = 455,
-        Height = 90,
+        Dock = DockStyle.Fill,
         MaxLength = int.MaxValue
     };
+    private readonly Button _btnLoadMd = new() { AutoSize = true, Padding = new Padding(14, 9, 14, 9), Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+    private readonly Button _btnClearMd = new() { AutoSize = true, Padding = new Padding(14, 9, 14, 9), Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
 
-    // Guida & Azioni
-    private readonly GroupBox _grpGuide = new();
-    private readonly RichTextBox _txtGuide = new() { ReadOnly = true, Height = 110, Width = 465, BackColor = Color.FromArgb(245, 245, 245), BorderStyle = BorderStyle.FixedSingle };
-    private readonly Button _btnSave = new() { Size = new Size(140, 32) };
+    // Label localizzabili per la card agenti
+    private readonly Label _lblAgentNameLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblRealModelLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblPresetLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblTokenLimitsLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblMaxInputLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblMaxOutputLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblFeaturesLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+    private readonly Label _lblMarkdownLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
+
+    // Guida
+    private readonly CardPanel _cardGuide = new() { Dock = DockStyle.Fill };
+    private readonly RichTextBox _txtGuide = new() { ReadOnly = true, Dock = DockStyle.Fill, BorderStyle = BorderStyle.None };
+
+    // Barra inferiore
+    private readonly Panel _bottomBar = new() { Dock = DockStyle.Bottom, Height = 70 };
+    private readonly AccentButton _btnSave = new() { AutoSize = true, Padding = new Padding(28, 12, 28, 12), Font = new Font("Segoe UI", 10f, FontStyle.Bold) };
 
     private AgentProfile? CurrentAgent =>
         _currentIndex >= 0 && _currentIndex < _agents.Count ? _agents[_currentIndex] : null;
@@ -95,48 +105,83 @@ public class SettingsForm : Form
         _agents = settings.Agents.Select(a => a.Clone()).ToList();
 
         if (!string.IsNullOrEmpty(_settings.Language))
-        {
             Loc.CurrentLanguage = _settings.Language;
-        }
+
+        Theme.Set(Theme.Parse(_settings.Theme));
 
         InitializeUI();
         LoadValues();
         RefreshAgentList(0);
         ApplyLocalization();
+        ShowPanel(_cardConn);
     }
 
     private void InitializeUI()
     {
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
+        Text = "OneProvider Proxy";
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(520, 878);
+        MinimumSize = new Size(920, 600);
+        ClientSize = new Size(1000, 650);
 
-        // Dimensioni gruppo connessione
-        _grpConn.Location = new Point(15, 12);
-        _grpConn.Size = new Size(490, 275);
+        // Navigazione
+        _navPanel.Padding = new Padding(0, 12, 0, 12);
+        _navConnection.Text = "Connection";
+        _navConnection.Dock = DockStyle.Top;
+        _navConnection.Click += (_, _) => ShowPanel(_cardConn);
+        _navAgents.Text = "Agents";
+        _navAgents.Dock = DockStyle.Top;
+        _navAgents.Click += (_, _) => ShowPanel(_cardAgents);
+        _navGuide.Text = "Setup Guide";
+        _navGuide.Dock = DockStyle.Top;
+        _navGuide.Click += (_, _) => ShowPanel(_cardGuide);
 
-        _lblKey.Location = new Point(15, 22);
-        _lblKey.AutoSize = true;
-        _txtApiKey.Location = new Point(15, 42);
+        _navPanel.Controls.Add(_navGuide);
+        _navPanel.Controls.Add(_navAgents);
+        _navPanel.Controls.Add(_navConnection);
 
-        _chkShowKey.Location = new Point(15, 70);
+        // Card Connessione
+        BuildConnectionCard();
+
+        // Card Agenti
+        BuildAgentsCard();
+
+        // Card Guida
+        BuildGuideCard();
+
+        // Barra inferiore
+        _btnSave.Text = "Save & Restart";
+        _btnSave.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
+        _btnSave.Click += BtnSave_Click;
+        _bottomBar.Controls.Add(_btnSave);
+
+        Controls.Add(_contentPanel);
+        Controls.Add(_navPanel);
+        Controls.Add(_bottomBar);
+    }
+
+    private void BuildConnectionCard()
+    {
+        _cardConn.Header = "Connection Parameters & Balance";
+
+        var grid = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 9,
+            AutoSize = true,
+            Padding = new Padding(4)
+        };
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140f));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+
+        for (int i = 0; i < 9; i++)
+            grid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
         _chkShowKey.CheckedChanged += (_, _) => _txtApiKey.UseSystemPasswordChar = !_chkShowKey.Checked;
 
-        _lblEndpoint.Location = new Point(15, 96);
-        _lblEndpoint.AutoSize = true;
-        _txtEndpoint.Location = new Point(15, 116);
-
-        // Riga Porta e Lingua
-        _lblPort.Location = new Point(15, 146);
-        _lblPort.AutoSize = true;
-        _numPort.Location = new Point(15, 166);
-        _numPort.ValueChanged += (_, _) => UpdateGuideText();
-
-        _lblLang.Location = new Point(340, 146);
-        _lblLang.AutoSize = true;
-        _cmbLang.Location = new Point(340, 166);
         _cmbLang.Items.Clear();
         _cmbLang.Items.Add("English");
         _cmbLang.Items.Add("Italiano");
@@ -147,163 +192,256 @@ public class SettingsForm : Form
             ApplyLocalization();
         };
 
-        // Riga Avvio Automatico (ben visibile su riga dedicata)
-        _chkStartup.Location = new Point(15, 200);
-        _chkStartup.AutoSize = true;
+        _cmbTheme.Items.Clear();
+        _cmbTheme.Items.Add("Light");
+        _cmbTheme.Items.Add("Dark");
+        _cmbTheme.SelectedIndex = (Theme.Mode == ThemeMode.Dark) ? 1 : 0;
+        _cmbTheme.SelectedIndexChanged += (_, _) =>
+        {
+            Theme.Set((_cmbTheme.SelectedIndex == 1) ? ThemeMode.Dark : ThemeMode.Light);
+            ApplyLocalization();
+        };
 
-        // Riga Test Saldo
-        _btnCheckBalance.Location = new Point(15, 230);
         _btnCheckBalance.Click += async (_, _) => await CheckBalanceAsync();
 
-        _lblBalanceInfo.Location = new Point(155, 230);
-        _lblBalanceInfo.Text = "";
+        var flowLang = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, WrapContents = false };
+        flowLang.Controls.Add(_lblLanguageLabel);
+        _lblLanguageLabel.Margin = new Padding(0, 6, 8, 0);
+        flowLang.Controls.Add(_cmbLang);
+        flowLang.Controls.Add(_lblThemeLabel);
+        _lblThemeLabel.Margin = new Padding(12, 6, 8, 0);
+        flowLang.Controls.Add(_cmbTheme);
 
-        _lblExpiryInfo.Location = new Point(155, 250);
-        _lblExpiryInfo.Text = "";
+        var flowBal = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
+        flowBal.Controls.Add(_lblBalanceInfo);
+        flowBal.Controls.Add(_lblExpiryInfo);
 
-        _grpConn.Controls.AddRange(new Control[] {
-            _lblKey, _txtApiKey, _chkShowKey,
-            _lblEndpoint, _txtEndpoint,
-            _lblPort, _numPort, _chkStartup,
-            _lblLang, _cmbLang,
-            _btnCheckBalance, _lblBalanceInfo, _lblExpiryInfo
-        });
+        _lblApiKeyLabel.Margin = new Padding(0, 6, 0, 0);
+        _lblEndpointLabel.Margin = new Padding(0, 6, 0, 0);
+        _lblPortLabel.Margin = new Padding(0, 6, 0, 0);
+        _lblBalanceLabel.Margin = new Padding(0, 6, 0, 0);
 
-        // Agenti
-        _grpModels.Location = new Point(15, 290);
-        _grpModels.Size = new Size(490, 384);
+        grid.Controls.Add(_lblApiKeyLabel, 0, 0);
+        grid.Controls.Add(_txtApiKey, 1, 0);
+        grid.Controls.Add(new Label { Text = "", AutoSize = true }, 0, 1);
+        grid.Controls.Add(_chkShowKey, 1, 1);
 
-        // Riga 1: selezione agente + Nuovo / Elimina
-        _lblAgent.Location = new Point(15, 27);
-        _cmbAgents.Location = new Point(70, 21);
-        _cmbAgents.SelectedIndexChanged += (_, _) =>
+        grid.Controls.Add(_lblEndpointLabel, 0, 2);
+        grid.Controls.Add(_txtEndpoint, 1, 2);
+
+        grid.Controls.Add(_lblPortLabel, 0, 3);
+        grid.Controls.Add(_numPort, 1, 3);
+
+        grid.Controls.Add(new Label { Text = "", AutoSize = true }, 0, 4);
+        grid.Controls.Add(_chkStartup, 1, 4);
+
+        grid.Controls.Add(new Label { Text = "", AutoSize = true }, 0, 5);
+        grid.Controls.Add(flowLang, 1, 5);
+
+        grid.Controls.Add(_lblBalanceLabel, 0, 6);
+        grid.Controls.Add(_btnCheckBalance, 1, 6);
+
+        grid.Controls.Add(new Label { Text = "", AutoSize = true }, 0, 7);
+        grid.Controls.Add(flowBal, 1, 7);
+
+        _cardConn.Controls.Add(grid);
+    }
+
+    private void BuildAgentsCard()
+    {
+        _cardAgents.Header = "Agents (shown as models in Visual Studio)";
+
+        var split = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1, SplitterDistance = 200 };
+
+        // Pannello sinistro: lista agenti + pulsanti
+        var leftPanel = new Panel { Dock = DockStyle.Fill };
+        var leftGrid = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 3, ColumnCount = 1 };
+        leftGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+        leftGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 40f));
+        leftGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 40f));
+
+        _lstAgents.SelectedIndexChanged += (_, _) =>
         {
             if (_loadingAgent) return;
-            _currentIndex = _cmbAgents.SelectedIndex;
+            _currentIndex = _lstAgents.SelectedIndex;
             LoadAgentToEditor();
         };
-        _btnNewAgent.Location = new Point(305, 20);
+
         _btnNewAgent.Click += (_, _) => NewAgent();
-        _btnDeleteAgent.Location = new Point(385, 20);
         _btnDeleteAgent.Click += (_, _) => DeleteCurrentAgent();
 
-        // Riga 2: nome agente
-        _lblAgentName.Location = new Point(15, 56);
-        _txtAgentName.Location = new Point(15, 74);
+        leftGrid.Controls.Add(_lstAgents, 0, 0);
+        leftGrid.Controls.Add(_btnNewAgent, 0, 1);
+        leftGrid.Controls.Add(_btnDeleteAgent, 0, 2);
+        leftPanel.Controls.Add(leftGrid);
+        split.Panel1.Controls.Add(leftPanel);
+
+        // Pannello destro: editor dell'agente
+        var rightGrid = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 7, Padding = new Padding(8) };
+        rightGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160f));  // Più spazio per le label
+        rightGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        rightGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));   // Agent Name
+        rightGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));   // Real Model
+        rightGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 55f));   // Copy Preset
+        rightGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 60f));   // Token Limits
+        rightGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 105f));  // Features (3 checkbox)
+        rightGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));   // Markdown (espandibile)
+        rightGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 55f));   // Pulsanti Markdown
+
         _txtAgentName.TextChanged += (_, _) => OnAgentNameChanged();
 
-        // Riga 3: modello reale + Seleziona / Copia ID / Copia Preset
-        _lblSelectModel.Location = new Point(15, 110);
-        _lblSelectModel.AutoSize = true;
-        _txtSelectedModel.Location = new Point(70, 105);
-
-        _btnSelectModel.Location = new Point(305, 104);
         _btnSelectModel.Click += (_, _) => OpenModelSelector();
-
-        _btnCopyModelId.Location = new Point(405, 104);
         _btnCopyModelId.Click += (_, _) =>
         {
             if (CurrentAgent is { } agent)
             {
-                var name = agent.Name.Trim();
-                Clipboard.SetText(name);
-                MessageBox.Show(Loc.T("IdCopied", name), Loc.T("CopiedTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Clipboard.SetText(agent.Name.Trim());
+                MessageBox.Show(Loc.T("IdCopied", agent.Name.Trim()), Loc.T("CopiedTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         };
-
-        _btnCopyPreset.Location = new Point(15, 134);
         _btnCopyPreset.Click += (_, _) => CopyFullPreset();
 
-        _lblPresetContext.Location = new Point(115, 138);
-
-        // Riga 4: limiti token + funzionalità
-        _lblMaxInput.Location = new Point(15, 168);
-        _numMaxInput.Location = new Point(15, 186);
         _numMaxInput.ValueChanged += (_, _) => OnLimitsChanged();
-
-        _lblMaxOutput.Location = new Point(140, 168);
-        _numMaxOutput.Location = new Point(140, 186);
         _numMaxOutput.ValueChanged += (_, _) => OnLimitsChanged();
-
-        _chkTools.Location = new Point(270, 185);
         _chkTools.CheckedChanged += (_, _) => OnFeaturesChanged();
-        _chkVision.Location = new Point(270, 207);
         _chkVision.CheckedChanged += (_, _) => OnFeaturesChanged();
-        _chkCache.Location = new Point(270, 229);
         _chkCache.CheckedChanged += (_, _) => OnFeaturesChanged();
 
-        // Riga 5: markdown
-        _lblMarkdown.Location = new Point(15, 258);
-        _lblMarkdown.AutoSize = true;
-        _btnLoadMd.Location = new Point(295, 252);
-        _btnLoadMd.Click += (_, _) => LoadMarkdownFromFile();
-        _btnClearMd.Location = new Point(385, 252);
-        _btnClearMd.Click += (_, _) => _txtMarkdown.Clear();
-
-        _txtMarkdown.Location = new Point(15, 280);
         _txtMarkdown.TextChanged += (_, _) =>
         {
             if (_loadingAgent || CurrentAgent is not { } agent) return;
-            // Nel TextBox le righe finiscono con \r\n; nei dati salviamo \n (formato standard per le API)
             agent.Markdown = _txtMarkdown.Text.ReplaceLineEndings("\n");
         };
 
-        _grpModels.Controls.AddRange(new Control[] {
-            _lblAgent, _cmbAgents, _btnNewAgent, _btnDeleteAgent,
-            _lblAgentName, _txtAgentName,
-            _lblSelectModel, _txtSelectedModel, _btnSelectModel, _btnCopyModelId, _btnCopyPreset,
-            _lblPresetContext,
-            _lblMaxInput, _numMaxInput, _lblMaxOutput, _numMaxOutput, _chkTools, _chkVision, _chkCache,
-            _lblMarkdown, _btnLoadMd, _btnClearMd, _txtMarkdown
-        });
+        _btnLoadMd.Click += (_, _) => LoadMarkdownFromFile();
+        _btnClearMd.Click += (_, _) => _txtMarkdown.Clear();
 
-        // Guida
-        _grpGuide.Location = new Point(15, 686);
-        _grpGuide.Size = new Size(490, 140);
+        var flowModel = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Anchor = AnchorStyles.Left | AnchorStyles.Top };
+        flowModel.Controls.Add(_txtSelectedModel);
+        flowModel.Controls.Add(_btnSelectModel);
+        flowModel.Controls.Add(_btnCopyModelId);
 
-        _txtGuide.Location = new Point(12, 20);
-        _txtGuide.Height = 110;
-        _grpGuide.Controls.Add(_txtGuide);
+        var flowPreset = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Anchor = AnchorStyles.Left | AnchorStyles.Top };
+        flowPreset.Controls.Add(_btnCopyPreset);
+        flowPreset.Controls.Add(_lblPresetContext);
 
-        // Salva
-        _btnSave.Location = new Point(365, 834);
-        _btnSave.Click += BtnSave_Click;
+        var flowLimits = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Anchor = AnchorStyles.Left | AnchorStyles.Top };
+        flowLimits.Controls.Add(_lblMaxInputLabel);
+        _lblMaxInputLabel.Margin = new Padding(0, 8, 6, 0);
+        flowLimits.Controls.Add(_numMaxInput);
+        flowLimits.Controls.Add(_lblMaxOutputLabel);
+        _lblMaxOutputLabel.Margin = new Padding(12, 8, 6, 0);
+        flowLimits.Controls.Add(_numMaxOutput);
 
-        Controls.AddRange(new Control[] { _grpConn, _grpModels, _grpGuide, _btnSave });
+        var flowFeatures = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, Anchor = AnchorStyles.Left | AnchorStyles.Top };
+        flowFeatures.Controls.Add(_chkTools);
+        flowFeatures.Controls.Add(_chkVision);
+        flowFeatures.Controls.Add(_chkCache);
+
+        var flowMd = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Anchor = AnchorStyles.Left | AnchorStyles.Top };
+        flowMd.Controls.Add(_btnLoadMd);
+        flowMd.Controls.Add(_btnClearMd);
+
+        _lblAgentNameLabel.Margin = new Padding(0, 16, 0, 0);
+        _lblRealModelLabel.Margin = new Padding(0, 16, 0, 0);
+        _lblPresetLabel.Margin = new Padding(0, 14, 0, 0);
+        _lblTokenLimitsLabel.Margin = new Padding(0, 16, 0, 0);
+        _lblFeaturesLabel.Margin = new Padding(0, 16, 0, 0);
+        _lblMarkdownLabel.Margin = new Padding(0, 16, 0, 0);
+
+        rightGrid.Controls.Add(_lblAgentNameLabel, 0, 0);
+        rightGrid.Controls.Add(_txtAgentName, 1, 0);
+
+        rightGrid.Controls.Add(_lblRealModelLabel, 0, 1);
+        rightGrid.Controls.Add(flowModel, 1, 1);
+
+        rightGrid.Controls.Add(_lblPresetLabel, 0, 2);
+        rightGrid.Controls.Add(flowPreset, 1, 2);
+
+        rightGrid.Controls.Add(_lblTokenLimitsLabel, 0, 3);
+        rightGrid.Controls.Add(flowLimits, 1, 3);
+
+        rightGrid.Controls.Add(_lblFeaturesLabel, 0, 4);
+        rightGrid.Controls.Add(flowFeatures, 1, 4);
+
+        rightGrid.Controls.Add(_lblMarkdownLabel, 0, 5);
+        rightGrid.Controls.Add(_txtMarkdown, 1, 5);
+
+        rightGrid.Controls.Add(new Label { Text = "", AutoSize = true }, 0, 6);
+        rightGrid.Controls.Add(flowMd, 1, 6);
+
+        split.Panel2.Controls.Add(rightGrid);
+        _cardAgents.Controls.Add(split);
+    }
+
+    private void BuildGuideCard()
+    {
+        _cardGuide.Header = "Visual Studio Setup Guide (Bring Your Own Model)";
+        _cardGuide.Controls.Add(_txtGuide);
+    }
+
+    private void ShowPanel(CardPanel card)
+    {
+        _navConnection.Selected = (card == _cardConn);
+        _navAgents.Selected = (card == _cardAgents);
+        _navGuide.Selected = (card == _cardGuide);
+
+        _contentPanel.Controls.Clear();
+        _contentPanel.Controls.Add(card);
+
+        if (card == _cardGuide) UpdateGuideText();
+    }
+
+    protected override void ApplyThemeExtras()
+    {
+        var p = Theme.Current;
+        _navPanel.BackColor = p.Window;
+        _bottomBar.BackColor = p.Window;
+        _lblPresetContext.ForeColor = p.Accent;
+
+        // Posiziona il pulsante Salva nella barra inferiore
+        _btnSave.Location = new Point(_bottomBar.Width - _btnSave.Width - 20, (_bottomBar.Height - _btnSave.Height) / 2);
     }
 
     private void ApplyLocalization()
     {
         Text = Loc.T("Title");
-        _grpConn.Text = Loc.T("GrpConn");
-        _lblKey.Text = Loc.T("ApiKey");
+        _navConnection.Text = Loc.T("NavConnection");
+        _navAgents.Text = Loc.T("NavAgents");
+        _navGuide.Text = Loc.T("NavGuide");
+
+        _cardConn.Header = Loc.T("GrpConn");
+        _lblApiKeyLabel.Text = Loc.T("ApiKeyLabel");
+        _lblEndpointLabel.Text = Loc.T("EndpointLabel");
+        _lblPortLabel.Text = Loc.T("PortLabel");
+        _lblLanguageLabel.Text = Loc.T("LanguageLabel");
+        _lblThemeLabel.Text = Loc.T("ThemeLabel");
+        _lblBalanceLabel.Text = Loc.T("BalanceLabel");
         _chkShowKey.Text = Loc.T("ShowKey");
-        _lblEndpoint.Text = Loc.T("TargetBaseUrl");
-        _lblPort.Text = Loc.T("LocalPort");
         _chkStartup.Text = Loc.T("RunStartup");
-        _lblLang.Text = Loc.T("Language");
         _btnCheckBalance.Text = Loc.T("CheckBalance");
 
-        _grpModels.Text = Loc.T("GrpModels");
-        _lblAgent.Text = Loc.T("Agent");
+        _cardAgents.Header = Loc.T("GrpModels");
         _btnNewAgent.Text = Loc.T("NewAgent");
         _btnDeleteAgent.Text = Loc.T("DeleteAgent");
-        _lblAgentName.Text = Loc.T("AgentName");
-        _lblSelectModel.Text = Loc.T("Model");
+        _lblAgentNameLabel.Text = Loc.T("AgentNameLabel");
+        _lblRealModelLabel.Text = Loc.T("RealModelLabel");
+        _lblPresetLabel.Text = Loc.T("PresetLabel");
+        _lblTokenLimitsLabel.Text = Loc.T("TokenLimitsLabel");
+        _lblMaxInputLabel.Text = Loc.T("MaxInputLabel");
+        _lblMaxOutputLabel.Text = Loc.T("MaxOutputLabel");
+        _lblFeaturesLabel.Text = Loc.T("FeaturesLabel");
+        _lblMarkdownLabel.Text = Loc.T("MarkdownLabel");
+        _btnSelectModel.Text = Loc.T("SelectModel");
         _btnCopyModelId.Text = Loc.T("CopyId");
         _btnCopyPreset.Text = Loc.T("CopyPreset");
-        _lblMarkdown.Text = Loc.T("Markdown");
-        _btnLoadMd.Text = Loc.T("LoadFile");
-        _btnClearMd.Text = Loc.T("ClearMd");
-
-        _lblMaxInput.Text = Loc.T("MaxInput");
-        _lblMaxOutput.Text = Loc.T("MaxOutput");
         _chkTools.Text = Loc.T("SupportsTools");
         _chkVision.Text = Loc.T("SupportsVision");
         _chkCache.Text = Loc.T("UsePromptCaching");
-        _btnSelectModel.Text = Loc.T("SelectModel");
+        _btnLoadMd.Text = Loc.T("LoadFile");
+        _btnClearMd.Text = Loc.T("ClearMd");
 
-        _grpGuide.Text = Loc.T("GrpGuide");
+        _cardGuide.Header = Loc.T("GrpGuide");
         _btnSave.Text = Loc.T("SaveRestart");
 
         UpdateSelectedPresetDisplay();
@@ -314,18 +452,8 @@ public class SettingsForm : Form
 
     private void OpenModelSelector()
     {
-        // Carica i modelli in modo asincrono se non sono già in cache
         var models = ModelCatalog.Cached;
-        if (models.Count == 0)
-        {
-            // Tentativo di caricamento sincrono dalla cache su disco
-            models = ModelCatalog.Cached;
-        }
-
-        using var selector = new ModelSelectorForm(models, CurrentAgent?.ModelId ?? "")
-        {
-            Tag = _settings // Passa le impostazioni per il refresh
-        };
+        using var selector = new ModelSelectorForm(models, CurrentAgent?.ModelId ?? "", _settings);
 
         if (selector.ShowDialog(this) == DialogResult.OK)
         {
@@ -338,20 +466,18 @@ public class SettingsForm : Form
         }
     }
 
-    /// <summary>Ricostruisce l'elenco degli agenti e seleziona quello all'indice indicato.</summary>
     private void RefreshAgentList(int selectIndex)
     {
         _loadingAgent = true;
-        _cmbAgents.Items.Clear();
-        foreach (var a in _agents) _cmbAgents.Items.Add(a);
+        _lstAgents.Items.Clear();
+        foreach (var a in _agents) _lstAgents.Items.Add(a);
         _currentIndex = _agents.Count == 0 ? -1 : Math.Clamp(selectIndex, 0, _agents.Count - 1);
-        _cmbAgents.SelectedIndex = _currentIndex;
+        _lstAgents.SelectedIndex = _currentIndex;
         _loadingAgent = false;
 
         LoadAgentToEditor();
     }
 
-    /// <summary>Copia i dati dell'agente selezionato nei controlli (nome, modello, markdown).</summary>
     private void LoadAgentToEditor()
     {
         _loadingAgent = true;
@@ -382,7 +508,6 @@ public class SettingsForm : Form
                 _chkVision.Checked = agent.SupportsVision;
                 _chkCache.Checked = agent.UsePromptCaching;
 
-                // Il TextBox vuole \r\n come fine riga, altrimenti mostra tutto su una riga
                 _txtMarkdown.Text = agent.Markdown.ReplaceLineEndings();
             }
         }
@@ -416,10 +541,9 @@ public class SettingsForm : Form
         if (_loadingAgent || CurrentAgent is not { } agent) return;
         agent.Name = _txtAgentName.Text;
 
-        // Aggiorna il testo mostrato nell'elenco a tendina
         _loadingAgent = true;
-        _cmbAgents.Items[_currentIndex] = agent;
-        _cmbAgents.SelectedIndex = _currentIndex;
+        _lstAgents.Items[_currentIndex] = agent;
+        _lstAgents.SelectedIndex = _currentIndex;
         _loadingAgent = false;
     }
 
@@ -428,6 +552,7 @@ public class SettingsForm : Form
         if (_loadingAgent || CurrentAgent is not { } agent) return;
         agent.MaxInputTokens = (int)_numMaxInput.Value;
         agent.MaxOutputTokens = (int)_numMaxOutput.Value;
+        UpdateSelectedPresetDisplay();
     }
 
     private void OnFeaturesChanged()
@@ -631,6 +756,7 @@ public class SettingsForm : Form
         _settings.TargetEndpoint = _txtEndpoint.Text.Trim().TrimEnd('/');
         _settings.Port = (int)_numPort.Value;
         _settings.Language = Loc.CurrentLanguage;
+        _settings.Theme = Theme.ToSetting(Theme.Mode);
         _settings.Agents = _agents.Select(a => a.Clone()).ToList();
         _settings.Save();
 
@@ -649,10 +775,5 @@ public class SettingsForm : Form
             Hide();
         }
         base.OnFormClosing(e);
-    }
-
-    private record ModelPreset(string DisplayName, string Id)
-    {
-        public override string ToString() => DisplayName;
     }
 }

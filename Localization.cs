@@ -21,6 +21,12 @@ public static class Loc
         ["Title"] = ("OneProvider Proxy - Configuration & Presets", "OneProvider Proxy - Configurazione & Preset Modelli"),
         ["GrpConn"] = ("Connection Parameters & Balance", "Parametri di Connessione & Saldo OneProvider"),
         ["ApiKey"] = ("OneProvider API Key (sk-...):", "OneProvider API Key (sk-...):"),
+        ["ApiKeyLabel"] = ("API Key:", "Chiave API:"),
+        ["EndpointLabel"] = ("Endpoint:", "Endpoint:"),
+        ["PortLabel"] = ("Local Port:", "Porta Locale:"),
+        ["BalanceLabel"] = ("Balance:", "Saldo:"),
+        ["LanguageLabel"] = ("Language:", "Lingua:"),
+        ["ThemeLabel"] = ("Theme:", "Tema:"),
         ["ShowKey"] = ("Show key", "Mostra chiave"),
         ["TargetBaseUrl"] = ("Target Base URL:", "Target Base URL:"),
         ["LocalPort"] = ("Local Port:", "Porta Locale:"),
@@ -43,6 +49,14 @@ public static class Loc
         ["NewAgent"] = ("New", "Nuovo"),
         ["DeleteAgent"] = ("Delete", "Elimina"),
         ["AgentName"] = ("Agent name (this is the Model ID used in Visual Studio):", "Nome agente (è l'ID modello da usare in Visual Studio):"),
+        ["AgentNameLabel"] = ("Agent Name:", "Nome Agente:"),
+        ["RealModelLabel"] = ("Real Model:", "Modello Reale:"),
+        ["PresetLabel"] = ("Preset:", "Preset:"),
+        ["TokenLimitsLabel"] = ("Token Limits:", "Limiti Token:"),
+        ["MaxInputLabel"] = ("Max input:", "Input max:"),
+        ["MaxOutputLabel"] = ("Max output:", "Output max:"),
+        ["FeaturesLabel"] = ("Features:", "Funzionalità:"),
+        ["MarkdownLabel"] = ("Instructions (Markdown):", "Istruzioni (Markdown):"),
         ["Markdown"] = ("Instructions (Markdown) - empty = none:", "Istruzioni (Markdown) - vuoto = nessuna:"),
         ["LoadFile"] = ("Load .md...", "Carica .md..."),
         ["ClearMd"] = ("Clear", "Svuota"),
@@ -98,7 +112,40 @@ public static class Loc
 
         // Log Form
         ["LogTitle"] = ("OneProvider Proxy - Activity Log", "OneProvider Proxy - Monitor Chiamate"),
-        ["LogClear"] = ("Clear Log", "Cancella Log")
+        ["LogClear"] = ("Clear Log", "Cancella Log"),
+
+        // Navigazione principale
+        ["NavConnection"] = ("Connection", "Connessione"),
+        ["NavAgents"] = ("Agents & Presets", "Agenti & Preset"),
+        ["NavGuide"] = ("Setup Guide", "Guida Setup"),
+        ["AppSubtitle"] = ("Your prompts, exposed as models", "I tuoi prompt, esposti come modelli"),
+
+        // Tema
+        ["Theme"] = ("Theme:", "Tema:"),
+        ["ThemeLight"] = ("Light", "Chiaro"),
+        ["ThemeDark"] = ("Dark", "Scuro"),
+
+        // Stato e azioni
+        ["UnsavedChanges"] = ("Unsaved changes", "Modifiche non salvate"),
+        ["NoUnsavedChanges"] = ("All changes saved", "Nessuna modifica da salvare"),
+        ["AgentList"] = ("Agents", "Agenti"),
+        ["ServerRunning"] = ("Proxy active on port {0}", "Proxy attivo sulla porta {0}"),
+        ["ConfirmDiscard"] = ("Discard unsaved changes?", "Scartare le modifiche non salvate?"),
+
+        // Log Form - toolbar
+        ["LogFilter"] = ("Filter:", "Filtro:"),
+        ["LogCopy"] = ("Copy all", "Copia tutto"),
+        ["LogPause"] = ("Pause", "Pausa"),
+        ["LogResume"] = ("Resume", "Riprendi"),
+        ["LogAutoscroll"] = ("Auto-scroll", "Scorrimento automatico"),
+        ["LogCopied"] = ("Log copied to clipboard.", "Log copiato negli appunti."),
+        ["LogEmpty"] = ("No log entries yet.", "Nessuna voce di log."),
+
+        // Model selector
+        ["ModelsCount"] = ("{0} models available", "{0} modelli disponibili"),
+        ["ModelsFiltered"] = ("{0} of {1} models", "{0} di {1} modelli"),
+        ["NoModels"] = ("No models loaded. Press 'Refresh from API'.", "Nessun modello caricato. Premi 'Aggiorna da API'."),
+        ["LoadingModels"] = ("Loading models...", "Caricamento modelli...")
     };
 
     public static string T(string key, params object[] args)

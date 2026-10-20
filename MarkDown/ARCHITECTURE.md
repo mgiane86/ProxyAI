@@ -1,6 +1,6 @@
 # ProxyAI · Architettura e Flusso di Esecuzione
 
-> Versione: 1.0
+> Versione: 1.1
 > Target: **.NET 10 (`net10.0-windows`), WinForms, tray application**
 > Scopo: descrivere *come funziona* il programma, per poter intervenire sul codice senza rileggere tutti i file.
 > Documenti collegati: `CODE_REFERENCE.md` (API per file), `.github/copilot-instructions.md` (sintesi operativa).
