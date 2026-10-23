@@ -88,7 +88,11 @@ public static class UsageTracker
         try
         {
             var json = JsonSerializer.Serialize(_current, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(StatsPath, json);
+
+            // Scrittura atomica: temp file + rename per evitare corruzione in caso di crash
+            var tempPath = StatsPath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, StatsPath, overwrite: true);
         }
         catch { }
     }

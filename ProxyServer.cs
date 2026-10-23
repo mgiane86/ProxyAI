@@ -29,7 +29,7 @@ public class ProxyServer : IDisposable
     public ProxyServer(AppSettings settings)
     {
         _settings = settings;
-        _client = new HttpClient();
+        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
     }
 
     public void Start()
