@@ -55,7 +55,11 @@ public class AppSettings
         try
         {
             var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(ConfigPath, json);
+
+            // Scrittura atomica: temp file + rename per evitare corruzione in caso di crash
+            var tempPath = ConfigPath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, ConfigPath, overwrite: true);
         }
         catch { }
     }

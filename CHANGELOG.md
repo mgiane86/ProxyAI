@@ -7,7 +7,7 @@ e questo progetto aderisce al [Semantic Versioning](https://semver.org/lang/it/)
 
 ---
 
-## [1.1.0] - 2025-01-XX
+## [1.1.0] - 2026-10-23
 
 ### Aggiunto
 - **Sistema di temi Light/Dark**: scelta tra tema chiaro e scuro nell'interfaccia (non influisce sul proxy)

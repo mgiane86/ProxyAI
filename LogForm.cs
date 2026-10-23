@@ -21,6 +21,7 @@ public class LogForm : ThemedForm
     private readonly Button _btnCopy = new() { AutoSize = true, Padding = new Padding(10, 6, 10, 6) };
     private readonly CheckBox _chkAutoscroll = new() { AutoSize = true, Checked = true };
 
+    private const int MaxLogLines = 1000;
     private string _filterText = "";
     private bool _autoscroll = true;
 
@@ -127,8 +128,29 @@ public class LogForm : ThemedForm
         _txtLog.SelectionColor = color;
         _txtLog.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
 
+        // Limite righe: rimuove le più vecchie se supera MaxLogLines
+        TrimLogIfNeeded();
+
         if (_autoscroll)
             _txtLog.ScrollToCaret();
+    }
+
+    private void TrimLogIfNeeded()
+    {
+        var lines = _txtLog.Lines;
+        if (lines.Length <= MaxLogLines) return;
+
+        // Rimuovi le prime righe eccedenti (mantieni le ultime MaxLogLines)
+        var linesToRemove = lines.Length - MaxLogLines;
+        var firstLineLength = 0;
+        for (int i = 0; i < linesToRemove; i++)
+        {
+            firstLineLength += lines[i].Length + Environment.NewLine.Length;
+        }
+
+        _txtLog.Select(0, firstLineLength);
+        _txtLog.SelectedText = "";
+        _txtLog.Select(_txtLog.TextLength, 0);
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
